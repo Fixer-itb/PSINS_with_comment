@@ -3334,38 +3334,36 @@ double CSINSTDKF::Innovationi(int row)
  * @param pvm 速度增量
  * @param nSamples 字样数
  * @param ts 采样间隔
- * @param nStep 运行步数(DEMO default 5)
+ * @param nStep 运行步数
  * @return int 
  */
 int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, double ts, int nStep)
 {
     //! ins 更新
 	sins.Update(pwm, pvm, nSamples, ts);
-    //! 达到maxOutStep步数后实时打印(可以控制输出频率)，在惯导解算之后，滤波更新之前
+    //! 达到maxOutStep步数后实时输出，在惯导解算之后，滤波更新之前
 	if(++curOutStep>=maxOutStep) { RTOutput(), curOutStep=0; }
 	//! 滤波反馈
     Feedback(nq, sins.nts);//nq:状态维数
     //!更新过程中时间计算用于补偿
-	for(int j=0; j<nr; j++) {		//nr:观测维数
-		measlost.dd[j] += sins.nts;	//measlost量测丢失时间
-		if(Rstop.dd[j]>0.0) Rstop.dd[j] -= sins.nts;//?
-		if(measstop.dd[j]>0.0) measstop.dd[j] -= sins.nts;//measstop停止量测计数
+	for(int j=0; j<nr; j++) {//nr:观测维数
+		measlost.dd[j] += sins.nts;
+		if(Rstop.dd[j]>0.0) Rstop.dd[j] -= sins.nts;
+		if(measstop.dd[j]>0.0) measstop.dd[j] -= sins.nts;
 	}
 
 	measRes = 0;
     //! nStep 在每个惯导更新周期内需保证nStep步能运行完；每步大约运行0.5ms，但不同处理器间存在差异
-    //! nStep default = 5; maxStep = 2*(nq+nr)+3
 	if(nStep<=0||nStep>=maxStep) { nStep=maxStep; }
 	tdStep = nStep;
 
 	tdts += sins.nts; kftk = sins.tk;  kfcount++;
 //	meanfn = meanfn+sins.fn; ifn++;
-    //! 向量加法，可以用于平均降采样, ifn default = 0, meanfn default = 0
+    //! 可以用于平均降采样
 	VADDE(meanfn, sins.fn); ifn++;
-
-	for(int i=0; i<nStep; i++)//nStep defult 5
+	for(int i=0; i<nStep; i++)
 	{
-		if(iter==-2)			//! -2: 构造惯导误差传递矩阵F(t)//iter default = -2 loop first
+		if(iter==-2)			//! -2: 构造惯导误差传递矩阵F(t)
 		{
 			if(ifn==0)	break;
 			CVect3 fn=sins.fn, an=sins.an;
@@ -3398,7 +3396,7 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
 		}
 		else if(iter<nq)		// 0 -> (nq-1): Fk*Pk //! 协方差矩阵预测准备 P' = Φ(k/k-1)P(K-1); 共nq步数
 		{
-			int row=iter;//! iter 从0-(nq-1);
+			int row=iter;
 			RowMul(Pk1, Fk, Pk, row, cststt);
 		}
 		else if(iter<2*nq)		// nq -> (2*nq-1): Fk*Pk*Fk+Qk //!协方差矩阵预测 P(k/k-1) = P'*Φ(k/k-1)T
@@ -5281,12 +5279,12 @@ void CSINS::SetTauGA(const CVect3 &tauG, const CVect3 &tauA)
 	}
 }
 /**
- * @brief	惯导更新
+ * @brief 
  * 
- * @param pwm 角增量
- * @param pvm 速度增量
- * @param nSamples 采样数
- * @param ts 时间间隔
+ * @param pwm 
+ * @param pvm 
+ * @param nSamples 
+ * @param ts 
  */
 void CSINS::Update(const CVect3 *pwm, const CVect3 *pvm, int nSamples, double ts)
 {

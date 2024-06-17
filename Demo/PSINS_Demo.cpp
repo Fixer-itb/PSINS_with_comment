@@ -2,6 +2,39 @@
 
 #ifdef  PSINSDemo
 
+void SINSGPS_static_main(void)
+{
+	CKFApp kf(TS);
+	Mcu_ConfigGps = 0;
+	CVect3 gpspos=LLH(34.2485845,108.910097,403.0), gpsvn=O31; 
+	kf.Init(CSINS(O31, gpsvn, gpspos));      // 请正确初始化位置
+	outFrame.Head=0x57aa55aa; 	
+	while(1)
+	{
+		if(cmdOK&&cmdID<10) { cmdOK=0; break; }
+		if(!imuDataAvailable) continue;
+		wm = (CVect3(imu.gyr[0],imu.gyr[1],imu.gyr[2])*DPS-eb)*TS;
+		vm = (CVect3(imu.acc[0],imu.acc[1],imu.acc[2])*G0-db)*TS;
+		if(gpsDataAvailable)
+		{
+			if(gpsData.GPS_numSV>6&&gpsData.GPS_pDOP<5.0f)
+			{
+				CVect3 gpos = *(CVect3*)gpsData.GPS_Pos, gvn = *(CVect3*)gpsData.GPS_Vn;
+				kf.SetMeasGNSS(gpos, gvn);
+			}
+		}
+//		if(gpsData.GPS_Delay_us*1e-6>10)  // if GPS lost(>10s), using fix position  
+//		{
+//			kf.SetMeasGNSS(gpspos, CVect3(0,0,0.01));
+//		}
+		kf.Update(&wm, &vm, 1, TS, 5);		// 5steps ~= 2ms
+		AVPUartOut(kf);
+		NavCalcuDone();
+	}
+}
+
+
+
 void Demo_User(void)
 {
 	double aa[]={11,2,3,4,  1,22,3,4,   1,2,33,4,  1,2,3,44};
@@ -193,7 +226,8 @@ void Demo_CSINSGNSS(void)
 #ifdef PSINS_RMEMORY
 	CFileRdWt::Dir("D:\\psins210406\\vc60\\Data\\");
 	CFileIMUGNSS fimu("imugps.bin"); CFileRdWt fins("ins.bin"), fkf("kf.bin");
-	CAlignsv aln(fimu.pos0, fimu.ts, 50);
+	//!数据存储方式初始对准
+    CAlignsv aln(fimu.pos0, fimu.ts, 50);
 	for(double t=0.0; t<50.0; t+=fimu.ts) {
 		fimu.load(1); aln.Update(fimu.pwm, fimu.pvm);
 	}
@@ -208,7 +242,6 @@ void Demo_CSINSGNSS(void)
 		if(!fimu.load(1)) break;
 		kf.Update(fimu.pwm, fimu.pvm, 1, fimu.ts);
 		if(fimu.ppGNSS->i>0.1)
-			kf.SetMeasGNSS(*fimu.ppGNSS, *fimu.pvGNSS);
 		if(i%20==0 || fimu.ppGNSS->i>0.1)
 			fins<<kf.sins<<*fimu.pvGNSS<<*fimu.ppGNSS;
 		if(i%20==0) fkf<<kf;
