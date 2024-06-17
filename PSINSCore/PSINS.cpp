@@ -2012,7 +2012,15 @@ CVect lss(const CMat &A, const CVect &y)
 	else //error
 		return Onen1;
 }
-
+/**
+ * @brief 仅计算前矩阵m0的第r行乘后矩阵m1，即m(r,:)=m0(r,:)*m1
+ * 
+ * @param m 矩阵结果
+ * @param m0 原矩阵
+ * @param m1 待乘矩阵
+ * @param r 待乘行
+ * @param fast 
+ */
 void RowMul(CMat &m, const CMat &m0, const CMat &m1, int r, int fast)
 {
 	psinsassert(m0.clm==m1.row);
@@ -2842,11 +2850,27 @@ int CMaxMin::Update(float f)
 }
 
 //***************************  class CMaxMinn  *********************************/
+/**
+ * @brief Construct a new CMaxMinn::CMaxMinn object
+ * 给出最近n个数的最大最小值,多维版本
+ * @param n0 维度
+ * @param cnt00 
+ * @param pre00 
+ * @param f0 
+ */
 CMaxMinn::CMaxMinn(int n0, int cnt00, int pre00, float f0)
 {
 	Init(n0, cnt00, pre00, f0);
 }
 
+/**
+ * @brief 初始化，统计最近的n个值，使n=cnt00，一般pre00=cnt00/2，。
+ * 
+ * @param n0 
+ * @param cnt00 
+ * @param pre00 
+ * @param f0 
+ */
 void CMaxMinn::Init(int n0, int cnt00, int pre00, float f0)
 {
 	n = n0;
@@ -2946,23 +2970,42 @@ CKalman::CKalman(int nq0, int nr0)
 	if(!(nq0<=MMD&&nr0<=MMD)) { /*printf("\tMMD too small!\n");*/ exit(0); }
 	Init(nq0, nr0);
 }
-
+/**
+ * @brief 卡尔曼初始化
+ * 
+ * @param nq0 
+ * @param nr0 
+ */
 void CKalman::Init(int nq0, int nr0)
 {
-	kftk = 0.0;
-	nq = nq0; nr = nr0;
-	Ft = Pk = CMat(nq,nq,0.0);
-	Hk = CMat(nr,nq,0.0);  Fading = CMat(nr,nq,1.0); zfdafa = 0.1f;
-	Qt = Pmin = Xk = CVect(nq,0.0);  Xmax = Pmax = CVect(nq,INF);  Pset = CVect(nq,-INF);
-	Zk = Zk_1 = CVect(nr,0.0);  Rt = Rt0 = CVect(nr,INF); Rset = CVect(nr,-INF); rts = CVect(nr,1.0);  Zfd = CVect(nr,0.0); Zfd0 = Zmm0 = Zmax = CVect(nr,INF);
-	innoPre = CVect(nr,0.0); innoDiffMax = CVect(nr,INF);
-	RtTau = Rmax = CVect(nr,INF); measstop = measlost = Rmin = Rb = Rstop = CVect(nr,0.0); Rbeta = CVect(nr,1.0);
-	SetRmaxcount(5);
-	innoMax = CVect(nr,INF);
-	SetInnoMaxcount(5);
-	FBTau = FBMax = FBOne = FBOne1 = CVect(nq,INF); FBXk = FBTotal = CVect(nq,0.0);
-	kfcount = measflag = measflaglog = 0;  SetMeasMask(nr0,3);
-	Zmm.Init(nr0, 10);
+	kftk = 0.0;	//!滤波计时	
+	nq = nq0; nr = nr0;	//!状态维数和量测维数
+	Ft = Pk = CMat(nq,nq,0.0);	//!系统矩阵方差阵初始化0矩阵
+	Hk = CMat(nr,nq,0.0);  	//!量测矩阵初始化0矩阵
+	Fading = CMat(nr,nq,1.0); //!遗忘矩阵初始化为全1
+	zfdafa = 0.1f;	//!量测遗忘因子初始化=0.1
+	Qt = Pmin = Xk = CVect(nq,0.0);  //!系统噪声，方差阵下限，状态向量 0向量
+	Xmax = Pmax = CVect(nq,INF);  //!状态，方差阵，上限
+	Pset = CVect(nq,-INF);	//?
+	Zk = Zk_1 = CVect(nr,0.0);	//!量测  
+	Rt = Rt0 = CVect(nr,INF);	//!量测噪声
+	Rset = CVect(nr,-INF); 		//?
+	rts = CVect(nr,1.0);  	//!量测周期 1s
+	Zfd = CVect(nr,0.0); 	//!量测方差强跟踪门限
+	Zfd0 = Zmm0 = Zmax = CVect(nr,INF);	//?
+	innoPre = CVect(nr,0.0);	//!上一次更新的新息 
+	innoDiffMax = CVect(nr,INF);	//!新息最大差值
+	RtTau = Rmax = CVect(nr,INF); //!量测遗忘时间，量测自适应方差上限
+	measstop = measlost = Rmin = Rb = Rstop = CVect(nr,0.0); //!停止量测计数，量测丢失时间，量测自适应方差下限，遗忘参数b，？
+	Rbeta = CVect(nr,1.0);	//!遗忘参数beta
+	SetRmaxcount(5);	//!自适应量测方差超Rmax后，设置之后的连续量测无效个数
+	innoMax = CVect(nr,INF); //?新息最大阈值
+	SetInnoMaxcount(5);	//?
+	FBTau = FBMax = FBOne = FBOne1 = CVect(nq,INF); //!反馈时间常数、反馈上限，?，?
+	FBXk = FBTotal = CVect(nq,0.0);//!当前反馈值、总反馈量
+	kfcount = measflag = measflaglog = 0;  //?
+	SetMeasMask(nr0,3); //?
+	Zmm.Init(nr0, 10); //!最大最小统计值初始化
 }
 
 void CKalman::SetRmmbt(double rmin, double rmax, double b, double tau)
@@ -3301,20 +3344,22 @@ CSINSTDKF::CSINSTDKF(int nq0, int nr0)
 
 void CSINSTDKF::Init(const CSINS &sins0)
 {
-	sins = sins0;  kftk = sins.tk;
-	Fk = eye(nq);  Pk1 = CMat(nq,nq, 0.0);
-	Pxz = Qk = Kk = tmeas = CVect(nq, 0.0);
+	sins = sins0;	//!复制初始惯性导航状态
+	kftk = sins.tk;	//!滤波计时
+	Fk = eye(nq);  //!系统矩阵，离散时间
+	Pk1 = CMat(nq,nq, 0.0); //!协方差矩阵
+	Pxz = Qk = Kk = tmeas = CVect(nq, 0.0);//?
 	meantdts = 1.0; tdts = 0.0;
-	maxStep = 2*(nq+nr)+3;
-	TDReset();
-	curOutStep = 0; maxOutStep = 1;
+	maxStep = 2*(nq+nr)+3;//!最大步数
+	TDReset();//!滤波器重置
+	curOutStep = 0; maxOutStep = 1;//!用于控制打印输出频率：curOutStep=maxOutStep时输出
 	timcnt0 = timcnt1 = 0, timcntmax = 100;  burden = 0.0;
 	cststt = nq;  for(int k=0; k<nq; k++) hi1[k]=-1;
 }
 
 void CSINSTDKF::TDReset(void)
 {
-	iter = -2;
+	iter = -2;//!迭代次数？
 	ifn = 0;	meanfn = O31;
 	SetMeasFlag(0);
 }
@@ -3396,26 +3441,26 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
 //			RtFading(tdts);
 			meantdts = tdts; tdts = 0.0;
 		}
-		else if(iter<nq)		// 0 -> (nq-1): Fk*Pk //! 协方差矩阵预测准备 P' = Φ(k/k-1)P(K-1); 共nq步数
+		else if(iter<nq)		// 0 -> (nq-1): Fk*Pk //! 时间分片计算"预测协方差矩阵"的P' = F*P部分; 共nq步数。
 		{
-			int row=iter;//! iter 从0-(nq-1);
+			int row=iter;
 			RowMul(Pk1, Fk, Pk, row, cststt);
 		}
-		else if(iter<2*nq)		// nq -> (2*nq-1): Fk*Pk*Fk+Qk //!协方差矩阵预测 P(k/k-1) = P'*Φ(k/k-1)T
+		else if(iter<2*nq)		// nq -> (2*nq-1): Fk*Pk*Fk+Qk //! 待上一步完成后，时间分片计算"预测协方差矩阵"的 P(k/k-1) = P'*F^T+Q部分
 		{
 			int row=iter-nq;
 			RowMulT(Pk, Pk1, Fk, row, cststt);
 			Pk.dd[nq*row+row] += Qk.dd[row];
 //			if(row==nq-1) {	Pk += Qk; }
 		}
-		else if(iter<2*(nq+nr))	// (2*nq) -> (2*(nq+nr)-1): sequential measurement updating//! K更新，量测更新
+		else if(iter<2*(nq+nr))	// (2*nq) -> (2*(nq+nr)-1): sequential measurement updating//!来了量测，K更新，P更新
 		{
-			int row=(iter-2*Ft.row)/2; //!计算当前量测行
+			int row=(iter-2*Ft.row)/2; 				   //!计算当前量测更新行
 			int flag = (measflag&measmask)&(0x01<<row);//!判断当前测量行是否需要更新
 			if(flag)
 			{
-//				if((iter-2*Ft.row)%2==0)
-				if(iter%2==0) 
+//				if((iter-2*Ft.row)%2==0)			
+				if(iter%2==0)		
 				{
 					Hk.GetRow(Hi, row);  //!提取量测矩阵中的一行
 					int hi=hi1[row];     //!用于确定哪种量测方式
@@ -3604,9 +3649,10 @@ CSINSGNSS::CSINSGNSS(void)
 CSINSGNSS::CSINSGNSS(int nq0, int nr0, double ts, int yawHkRow0):CSINSTDKF(nq0, nr0)
 {
 	navStatus = 0;
-	posGNSSdelay = vnGNSSdelay = yawGNSSdelay = dtGNSSdelay = dyawGNSS = -0.0f;
-	kfts = ts;	gnssLost = &measlost.dd[3];
-	lvGNSS = O31;
+	posGNSSdelay = vnGNSSdelay = yawGNSSdelay = dtGNSSdelay = dyawGNSS = -0.0f;//!相对于IMU的GNSS定位延迟、速度延迟、定向延迟、?
+	kfts = ts;	//!滤波器时间更新时间间隔
+	gnssLost = &measlost.dd[3];//?
+	lvGNSS = O31;//!ENU杆臂
 	Hk(0,3) = Hk(1,4) = Hk(2,5) = 1.0;		// dvn
 	Hk(3,6) = Hk(4,7) = Hk(5,8) = 1.0;		// dpos
 	yawHkRow = yawHkRow0;

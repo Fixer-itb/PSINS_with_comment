@@ -1025,19 +1025,17 @@ public:
 	CVect3 pi0t(double t);
 	CVect3 pib0t(double t);
 };
-
+/**
+ * @brief 卡尔曼滤波
+ * 
+ */
 class CKalman
 {
 public:
-    //!滤波计时，量测遗忘因子
 	double kftk, zfdafa;
-    //!状态维数，量测维数
 	int nq, nr;
-    //! - ，量测标识，量测输出标识，-
 	unsigned int kfcount, measflag, measflaglog, measmask;
-	//!系统矩阵(连续时间)，方差阵，量测矩阵，遗忘矩阵
     CMat Ft, Pk, Hk, Fading;
-    //!
 	CVect Xk, Zk, Zk_1, Qt, Rt, Rt0, Rset, rts, RtTau, measstop, measlost, Xmax, Pmax, Pmin, Pset, Zfd, Zfd0, Zmm0, Zmax, innoDiffMax, innoPre,
 		Rmax, Rmin, Rbeta, Rb, Rstop,			// measurement noise R adaptive
 		innoMax,				// innovation outlier
@@ -1047,7 +1045,7 @@ public:
 //		FBTau, FBMax, FBOne, FBOne1, FBXk, FBTotal;	// feedback control
 //	CVectf Zfd, Zfd0, Zmm0, RtTau, Rmax, measstop, measlost, Rmin, Rb, Rstop, Rbeta;
 	int Rmaxcount[MMD], Rmaxcount0[MMD], innoMaxcount[MMD], innoMaxcount0, Zmmpk[MMD];
-	CMaxMinn Zmm;
+	CMaxMinn Zmm;	//!量测最大最小值
 
 	CKalman(void);
 	CKalman(int nq0, int nr0);
@@ -1089,7 +1087,7 @@ class CSINSTDKF:public CKalman
 {
 public:
 	double meantdts, tdts, Pz0, innovation, Kkp2y, Kkv2y;
-	int iter, ifn, cststt, hi1[MMD], adptOKi, measRes, tdStep, maxStep, curOutStep, maxOutStep;  // cststt:first ConSTant STaTe index
+	int iter, ifn, cststt, hi1[MMD], adptOKi, measRes, tdStep, maxStep, curOutStep, maxOutStep;  // cststt:first ConSTant STaTe index，第一个恒定状态索引
 	CMat Fk, Pk1; 
 	CVect Pxz, Qk, Kk, Hi, tmeas;
 	CVect3 meanfn;//! N系加速度均值
