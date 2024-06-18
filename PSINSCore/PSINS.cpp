@@ -3390,9 +3390,9 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
 	if(++curOutStep>=maxOutStep) { RTOutput(), curOutStep=0; }
 	//! 滤波反馈
     Feedback(nq, sins.nts);//nq:状态维数
-    //!更新过程中时间计算用于补偿
-	for(int j=0; j<nr; j++) {		//nr:观测维数
-		measlost.dd[j] += sins.nts;	//measlost量测丢失时间
+    //! 更新过程中时间计算用于补偿
+	for(int j=0; j<nr; j++) {		// nr:观测维数
+		measlost.dd[j] += sins.nts;	// measlost量测丢失时间
 		if(Rstop.dd[j]>0.0) Rstop.dd[j] -= sins.nts;//?
 		if(measstop.dd[j]>0.0) measstop.dd[j] -= sins.nts;//measstop停止量测计数
 	}
@@ -3408,9 +3408,9 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
     //! 向量加法，可以用于平均降采样, ifn default = 0, meanfn default = 0
 	VADDE(meanfn, sins.fn); ifn++;
 
-	for(int i=0; i<nStep; i++)//nStep defult 5
+	for(int i=0; i<nStep; i++)//nStep defult 5		e.g. nq=19, nr=6
 	{
-		if(iter==-2)			//! -2: 构造惯导误差传递矩阵F(t)//iter default = -2 loop first
+		if(iter==-2)				//-2: 构造惯导误差传递矩阵F(t)//iter default = -2 loop first
 		{
 			if(ifn==0)	break;
 			CVect3 fn=sins.fn, an=sins.an;
@@ -3419,7 +3419,7 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
 			SetFt(nq);
 			SetMeas(); SetHk(nq); sins.fn = fn; sins.an = an;
 		}
-		else if(iter==-1)		//! -1: 误差方程离散化 Φ(k/k-1) 1步
+		else if(iter==-1)			//-1: 误差方程离散化 Φ(k/k-1) 1步
 		{
 //			Fk = ++(Ft*tdts); // Fk = I+Ft*ts
 			double *pFk,*pFt,*pEnd;
@@ -3441,21 +3441,21 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
 //			RtFading(tdts);
 			meantdts = tdts; tdts = 0.0;
 		}
-		else if(iter<nq)		// 0 -> (nq-1): Fk*Pk //! 时间分片计算"预测协方差矩阵"的P' = F*P部分; 共nq步数。
+		else if(iter<nq)			// 0 -> (nq-1) = nq: e.g. = 19 ;Fk*Pk //! 时间分片计算"预测协方差矩阵"的P' = F*P部分; 共nq步数。
 		{
 			int row=iter;
 			RowMul(Pk1, Fk, Pk, row, cststt);
 		}
-		else if(iter<2*nq)		// nq -> (2*nq-1): Fk*Pk*Fk+Qk //! 待上一步完成后，时间分片计算"预测协方差矩阵"的 P(k/k-1) = P'*F^T+Q部分
+		else if(iter<2*nq)			// nq -> (2*nq-1) = nq: e.g. = 19 ;Fk*Pk*Fk+Qk //! 待上一步完成后，时间分片计算"预测协方差矩阵"的 P(k/k-1) = P'*F^T+Q部分
 		{
 			int row=iter-nq;
 			RowMulT(Pk, Pk1, Fk, row, cststt);
 			Pk.dd[nq*row+row] += Qk.dd[row];
 //			if(row==nq-1) {	Pk += Qk; }
 		}
-		else if(iter<2*(nq+nr))	// (2*nq) -> (2*(nq+nr)-1): sequential measurement updating//!来了量测，K更新，P更新
+		else if(iter<2*(nq+nr))		// (2*nq) -> (2*(nq+nr)-1) = 2 * nr: e.g. = 12; sequential measurement updating//!来了量测，K更新，P更新
 		{
-			int row=(iter-2*Ft.row)/2; 				   //!计算当前量测更新行
+			int row=(iter-2*Ft.row)/2; 				   //!row = [0,5]	计算当前量测更新行
 			int flag = (measflag&measmask)&(0x01<<row);//!判断当前测量行是否需要更新
 			if(flag)
 			{
@@ -3464,7 +3464,7 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
 				{
 					Hk.GetRow(Hi, row);  //!提取量测矩阵中的一行
 					int hi=hi1[row];     //!用于确定哪种量测方式
-                    if(hi>=0) {         //!直接使用协方差中的某列进行计算新息
+                    if(hi>=0) {          //!直接使用协方差中的某列进行计算新息
 						Pk.GetClm(Pxz, hi);
 						Pz0 = Pxz.dd[hi];
 						innovation = Zk.dd[row]-Xk.dd[hi];  Zk_1.dd[row] = Zk.dd[row];
@@ -3552,7 +3552,7 @@ int CSINSTDKF::TDUpdate(const CVect3 *pwm, const CVect3 *pvm, int nSamples, doub
 			if(iter%2==0 && Rstop.dd[row]<EPS)
 				RtFading(row, meantdts);//! 量测方差遗忘
 		}
-		else if(iter==2*(nq+nr))	// 2*(nq+nr): Xk,Pk constrain & symmetry
+		else if(iter==2*(nq+nr))	// 2*(nq+nr) = 0: Xk,Pk constrain & symmetry
 		{
 			//! 对状态向量和协方差矩阵进行约束，保证数值稳定性和鲁棒性
             XPConstrain();

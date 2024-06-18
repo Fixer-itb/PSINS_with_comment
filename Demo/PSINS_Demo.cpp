@@ -226,7 +226,7 @@ void Demo_CSINSGNSS(void)
 #ifdef PSINS_RMEMORY
 	CFileRdWt::Dir("D:\\psins210406\\vc60\\Data\\");
 	CFileIMUGNSS fimu("imugps.bin"); CFileRdWt fins("ins.bin"), fkf("kf.bin");
-	//!数据存储方式初始对准
+	//!鏁版嵁瀛樺偍鏂瑰紡鍒濆瀵瑰噯
     CAlignsv aln(fimu.pos0, fimu.ts, 50);
 	for(double t=0.0; t<50.0; t+=fimu.ts) {
 		fimu.load(1); aln.Update(fimu.pwm, fimu.pvm);
